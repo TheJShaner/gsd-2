@@ -6,6 +6,7 @@ import {
   createAgentSession,
   InteractiveMode,
 } from '@mariozechner/pi-coding-agent'
+import { join } from 'path'
 import { agentDir, sessionsDir, authFilePath } from './app-paths.js'
 import { buildResourceLoader, initResources } from './resource-loader.js'
 import { loadStoredEnvKeys, runWizardIfNeeded } from './wizard.js'
@@ -53,7 +54,12 @@ if (!settingsManager.getCollapseChangelog()) {
   settingsManager.setCollapseChangelog(true)
 }
 
-const sessionManager = SessionManager.create(process.cwd(), sessionsDir)
+// Per-directory session storage — same encoding as the upstream SDK so that
+// /resume only shows sessions from the current working directory.
+const cwd = process.cwd()
+const safePath = `--${cwd.replace(/^[/\\]/, '').replace(/[/\\:]/g, '-')}--`
+const projectSessionsDir = join(sessionsDir, safePath)
+const sessionManager = SessionManager.create(cwd, projectSessionsDir)
 
 initResources(agentDir)
 const resourceLoader = buildResourceLoader(agentDir)
