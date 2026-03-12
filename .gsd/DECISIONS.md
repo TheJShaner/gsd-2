@@ -15,8 +15,6 @@
 | D007 | M002 | arch | Secret forecasting scope | Current milestone only | Later milestones may change; collect when planning each | Yes — if cross-milestone friction observed |
 | D008 | M002 | arch | Existing key handling | Silent skip (no confirmation) | Less friction on repeated runs | Yes — if users want to rotate keys |
 | D009 | M002 | arch | Destination detection | Infer from project context (vercel.json, convex/ dir) | User shouldn't specify — falls back to .env | No |
-<<<<<<< HEAD
-=======
 | D010 | M002/S01 | convention | Secrets manifest format | H3 headings per env var key with bold metadata fields and numbered guidance lists | Matches existing GSD markdown conventions (roadmap uses H2, plan uses checkboxes); H3 per key enables extractAllSections(content, 3) reuse | No |
 | D011 | M002/S01 | pattern | Guidance list parsing strategy | Regex-based numbered list extraction, not parseBullets | parseBullets strips numbering which loses ordering semantics for step-by-step guidance | No |
->>>>>>> gsd/M002/S01
+| D012 | M002/S01 | convention | Prompt style for secret forecasting instructions | Auto prompt: structured multi-step; guided prompt: single self-contained paragraph | Auto prompt has more structure for LLM reliability; guided prompt is shorter since the agent session is interactive | No |

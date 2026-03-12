@@ -12,11 +12,7 @@ This file is the explicit capability and coverage contract for the project.
 - Source: user
 - Primary owning slice: M002/S01
 - Supporting slices: M002/S03
-<<<<<<< HEAD
-- Validation: unmapped
-=======
 - Validation: contract-proven (S01) — prompt instructions and manifest types/parser established; runtime proof pending S04
->>>>>>> gsd/M002/S01
 - Notes: Forecasting is LLM-generated at planning time, not from a static database.
 
 ### R002 — Secrets manifest file persisted in .gsd/
@@ -27,11 +23,7 @@ This file is the explicit capability and coverage contract for the project.
 - Source: user
 - Primary owning slice: M002/S01
 - Supporting slices: M002/S02, M002/S03
-<<<<<<< HEAD
-- Validation: unmapped
-=======
 - Validation: contract-proven (S01) — format defined with types, parser, writer, template; runtime persistence pending S03/S04
->>>>>>> gsd/M002/S01
 - Notes: File format must be parseable by the auto-mode state machine.
 
 ### R003 — LLM-generated step-by-step guidance per key
@@ -42,11 +34,7 @@ This file is the explicit capability and coverage contract for the project.
 - Source: user
 - Primary owning slice: M002/S01
 - Supporting slices: M002/S02
-<<<<<<< HEAD
-- Validation: unmapped
-=======
 - Validation: contract-proven (S01) — manifest format includes guidance[], dashboardUrl, formatHint per key; quality validation pending S04
->>>>>>> gsd/M002/S01
 - Notes: Guidance quality depends on LLM knowledge of common services. Accuracy is best-effort.
 
 ### R004 — Summary screen before collection
@@ -112,11 +100,7 @@ This file is the explicit capability and coverage contract for the project.
 - Source: inferred
 - Primary owning slice: M002/S01
 - Supporting slices: none
-<<<<<<< HEAD
-- Validation: unmapped
-=======
 - Validation: validated (S01) — both plan-milestone.md and guided-plan-milestone.md contain forecasting instructions with {{secretsOutputPath}} variable, wired through auto.ts and guided-flow.ts
->>>>>>> gsd/M002/S01
 - Notes: Modifies plan-milestone.md and possibly the discuss prompt.
 
 ### R010 — secure_env_collect enhanced with guidance field
@@ -186,25 +170,15 @@ This file is the explicit capability and coverage contract for the project.
 
 | ID | Class | Status | Primary owner | Supporting | Proof |
 |---|---|---|---|---|---|
-<<<<<<< HEAD
-| R001 | core-capability | active | M002/S01 | M002/S03 | unmapped |
-| R002 | continuity | active | M002/S01 | M002/S02, M002/S03 | unmapped |
-| R003 | primary-user-loop | active | M002/S01 | M002/S02 | unmapped |
-=======
 | R001 | core-capability | active | M002/S01 | M002/S03 | contract-proven (S01) |
 | R002 | continuity | active | M002/S01 | M002/S02, M002/S03 | contract-proven (S01) |
 | R003 | primary-user-loop | active | M002/S01 | M002/S02 | contract-proven (S01) |
->>>>>>> gsd/M002/S01
 | R004 | primary-user-loop | active | M002/S02 | none | unmapped |
 | R005 | primary-user-loop | active | M002/S02 | none | unmapped |
 | R006 | integration | active | M002/S02 | M002/S03 | unmapped |
 | R007 | core-capability | active | M002/S03 | none | unmapped |
 | R008 | core-capability | active | M002/S03 | none | unmapped |
-<<<<<<< HEAD
-| R009 | integration | active | M002/S01 | none | unmapped |
-=======
 | R009 | integration | validated | M002/S01 | none | validated (S01) |
->>>>>>> gsd/M002/S01
 | R010 | primary-user-loop | active | M002/S02 | none | unmapped |
 | R011 | core-capability | deferred | none | none | unmapped |
 | R012 | operability | deferred | none | none | unmapped |
@@ -213,14 +187,8 @@ This file is the explicit capability and coverage contract for the project.
 
 ## Coverage Summary
 
-<<<<<<< HEAD
-- Active requirements: 10
-- Mapped to slices: 10
-- Validated: 0
-=======
 - Active requirements: 9
 - Mapped to slices: 10
 - Validated: 1 (R009)
 - Contract-proven: 3 (R001, R002, R003)
->>>>>>> gsd/M002/S01
 - Unmapped active requirements: 0

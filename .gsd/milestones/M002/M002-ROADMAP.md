@@ -53,7 +53,7 @@ This milestone is complete only when all are true:
 
 ## Slices
 
-- [ ] **S01: Secret Forecasting & Manifest** `risk:medium` `depends:[]`
+- [x] **S01: Secret Forecasting & Manifest** `risk:medium` `depends:[]`
   > After this: running plan-milestone on a project involving external APIs produces a `.gsd/milestones/M00x/M00x-SECRETS.md` manifest file with predicted keys and step-by-step guidance for each. Verified by planning a test milestone and confirming the manifest is parseable.
 
 - [ ] **S02: Enhanced Collection UX** `risk:medium` `depends:[S01]`

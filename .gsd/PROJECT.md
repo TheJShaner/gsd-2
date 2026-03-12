@@ -10,9 +10,9 @@ Autonomous multi-session execution: the agent plans, executes, verifies, and adv
 
 ## Current State
 
-M001 complete — centralized all git mechanics into a deterministic `GitServiceImpl` class. Smart staging, conventional commit inference, merge guards, hidden snapshot refs, auto-push, and rich commit messages. All git operations route through the service; no raw git commands in LLM-facing prompts.
+M001 complete — centralized all git mechanics into a deterministic `GitServiceImpl` class.
 
-The extension has a full auto-mode state machine (`auto.ts`), guided wizard flow (`guided-flow.ts`), prompt-based unit dispatch, crash recovery, metrics tracking, and a TUI dashboard overlay.
+M002 in progress — proactive secret management. S01 complete: established the secrets manifest contract (types, forgiving parser, canonical formatter, template file, planning prompt instructions with `secretsOutputPath` wiring). Milestone planning prompts now instruct the LLM to forecast API keys and write an `M00x-SECRETS.md` manifest. Next: S02 (enhanced collection UX with multi-line guidance, summary screen, existing key detection, destination inference).
 
 ## Architecture / Key Patterns
 
@@ -21,7 +21,8 @@ The extension has a full auto-mode state machine (`auto.ts`), guided wizard flow
 - **Prompt injection:** Each unit type has a `.md` prompt template in `prompts/`. Variables are interpolated by `prompt-loader.ts`.
 - **State derivation:** `state.ts` reads roadmap/plan files to determine phase and active work item. State is derived, not stored.
 - **Git service:** `git-service.ts` owns all git mechanics. `worktree.ts` is a thin facade for backward compatibility.
-- **Secret collection:** `get-secrets-from-user.ts` provides `secure_env_collect` tool with paged masked TUI input. Currently reactive (collects when asked), not proactive.
+- **Secret collection:** `get-secrets-from-user.ts` provides `secure_env_collect` tool with paged masked TUI input. Currently reactive (collects when asked), not proactive. Planning prompts now forecast needed secrets — collection UX enhancement and auto-mode integration coming in S02/S03.
+- **Secrets manifest:** `M00x-SECRETS.md` files use H3 headings per env var key, bold metadata fields, numbered guidance steps. Parsed by `parseSecretsManifest()`, written by `formatSecretsManifest()`.
 
 ## Capability Contract
 
