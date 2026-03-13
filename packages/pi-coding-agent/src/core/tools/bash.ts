@@ -7,7 +7,7 @@ import type { AgentTool } from "@gsd/pi-agent-core";
 import { type Static, Type } from "@sinclair/typebox";
 import { spawn } from "child_process";
 import { getShellConfig, getShellEnv, killProcessTree, sanitizeCommand } from "../../utils/shell.js";
-import { type BashInterceptorRule, checkBashInterception } from "./bash-interceptor.js";
+import { type BashInterceptorRule, compileInterceptor, DEFAULT_BASH_INTERCEPTOR_RULES } from "./bash-interceptor.js";
 import { DEFAULT_MAX_BYTES, DEFAULT_MAX_LINES, formatSize, type TruncationResult, truncateTail } from "./truncate.js";
 import type { ArtifactManager } from "../artifact-manager.js";
 
@@ -207,6 +207,12 @@ export function createBashTool(cwd: string, options?: BashToolOptions): AgentToo
 	const spawnHook = options?.spawnHook;
 	const artifactManager = options?.artifactManager;
 
+	// Pre-compile interceptor rules once at construction time
+	const interceptorInstance =
+		options?.interceptor?.enabled
+			? compileInterceptor(options.interceptor.rules ?? DEFAULT_BASH_INTERCEPTOR_RULES)
+			: null;
+
 	return {
 		name: "bash",
 		label: "bash",
@@ -219,12 +225,12 @@ export function createBashTool(cwd: string, options?: BashToolOptions): AgentToo
 			onUpdate?,
 		) => {
 			// Check bash interceptor — block commands that duplicate dedicated tools
-			if (options?.interceptor?.enabled) {
+			if (interceptorInstance) {
 				const toolNames =
-					typeof options.availableToolNames === "function"
-						? options.availableToolNames()
-						: options.availableToolNames ?? [];
-				const interception = checkBashInterception(command, toolNames, options.interceptor.rules);
+					typeof options!.availableToolNames === "function"
+						? options!.availableToolNames()
+						: options!.availableToolNames ?? [];
+				const interception = interceptorInstance.check(command, toolNames);
 				if (interception.block) {
 					return {
 						content: [{ type: "text" as const, text: interception.message ?? "Command blocked by interceptor" }],

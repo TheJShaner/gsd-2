@@ -230,6 +230,8 @@ export {
 	type BashToolOptions,
 	bashTool,
 	checkBashInterception,
+	type CompiledInterceptor,
+	compileInterceptor,
 	DEFAULT_BASH_INTERCEPTOR_RULES,
 	codingTools,
 	DEFAULT_MAX_BYTES,

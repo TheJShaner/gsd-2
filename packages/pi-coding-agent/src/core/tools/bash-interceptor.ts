@@ -14,7 +14,8 @@ export interface BashInterceptorRule {
 
 export const DEFAULT_BASH_INTERCEPTOR_RULES: BashInterceptorRule[] = [
 	{
-		pattern: "^\\s*(cat|head|tail|less|more)\\s+",
+		// cat/head/tail for file viewing — excludes heredoc syntax (cat <<)
+		pattern: "^\\s*(cat(?!\\s*<<)|head|tail|less|more)\\s+",
 		tool: "read",
 		message: "Use the read tool to view file contents instead of shell commands.",
 	},
@@ -44,7 +45,9 @@ export const DEFAULT_BASH_INTERCEPTOR_RULES: BashInterceptorRule[] = [
 		message: "Use the edit tool for in-place file modifications instead of awk.",
 	},
 	{
-		pattern: "^\\s*(echo|printf|cat\\s*<<)\\s+.*[^|]>\\s*\\S",
+		// echo/printf/heredoc writing to a file via > (not >> append, not 2> stderr redirect)
+		// Matches a single > not preceded by |, >, or a digit (fd redirect like 2>)
+		pattern: "^\\s*(echo|printf|cat\\s*<<)\\s+.*(?<![|>\\d])>(?!>)\\s*\\S",
 		tool: "write",
 		message: "Use the write tool to create/overwrite files instead of shell redirects.",
 	},
@@ -56,21 +59,47 @@ export interface InterceptionResult {
 	suggestedTool?: string;
 }
 
+export interface CompiledInterceptor {
+	check: (command: string, availableTools: string[]) => InterceptionResult;
+}
+
 /**
- * Compile rules into regex objects, silently skipping invalid patterns.
+ * Compile rules into an interceptor with pre-built regex objects.
+ * Silently skips rules with invalid patterns.
+ *
+ * Pre-compiling at construction time avoids repeated `new RegExp()` calls
+ * on every bash command invocation.
  */
-function compileRules(rules: BashInterceptorRule[]): Array<{ regex: RegExp; rule: BashInterceptorRule }> {
-	return rules.flatMap((rule) => {
+export function compileInterceptor(rules: BashInterceptorRule[]): CompiledInterceptor {
+	const compiled = rules.flatMap((rule) => {
 		try {
 			return [{ regex: new RegExp(rule.pattern, rule.flags), rule }];
 		} catch {
 			return []; // skip invalid regex
 		}
 	});
+
+	return {
+		check(command: string, availableTools: string[]): InterceptionResult {
+			const trimmed = command.trim();
+			for (const { regex, rule } of compiled) {
+				if (regex.test(trimmed) && availableTools.includes(rule.tool)) {
+					return {
+						block: true,
+						message: `Blocked: ${rule.message}\n\nOriginal command: ${command}`,
+						suggestedTool: rule.tool,
+					};
+				}
+			}
+			return { block: false };
+		},
+	};
 }
 
 /**
  * Check whether a bash command should be intercepted.
+ *
+ * Compiles rules on each call — prefer `compileInterceptor()` for repeated use.
  *
  * @param command - The shell command to check
  * @param availableTools - Tool names present in the current session
@@ -82,18 +111,5 @@ export function checkBashInterception(
 	rules?: BashInterceptorRule[],
 ): InterceptionResult {
 	const effectiveRules = rules ?? DEFAULT_BASH_INTERCEPTOR_RULES;
-	const compiled = compileRules(effectiveRules);
-	const trimmed = command.trim();
-
-	for (const { regex, rule } of compiled) {
-		if (regex.test(trimmed) && availableTools.includes(rule.tool)) {
-			return {
-				block: true,
-				message: `Blocked: ${rule.message}\n\nOriginal command: ${command}`,
-				suggestedTool: rule.tool,
-			};
-		}
-	}
-
-	return { block: false };
+	return compileInterceptor(effectiveRules).check(command, availableTools);
 }

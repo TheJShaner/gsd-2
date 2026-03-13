@@ -11,6 +11,8 @@ export {
 export {
 	type BashInterceptorRule,
 	checkBashInterception,
+	type CompiledInterceptor,
+	compileInterceptor,
 	DEFAULT_BASH_INTERCEPTOR_RULES,
 	type InterceptionResult,
 } from "./bash-interceptor.js";
