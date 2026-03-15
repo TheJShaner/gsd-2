@@ -68,7 +68,7 @@ This milestone is complete only when all are true:
 - [x] **S05: Self-healing git repair** `risk:medium` `depends:[S01,S02,S03]`
   > After this: when a merge fails or checkout breaks during auto-mode, the system aborts the failed operation, resets working tree state, and retries. Only truly unresolvable conflicts (real code conflicts between human-edited files) pause auto-mode. Users see non-technical messages, not raw git errors. Verified by deliberately introducing failures and confirming auto-recovery.
 
-- [ ] **S06: Doctor + cleanup + code simplification** `risk:low` `depends:[S01,S02,S03,S05]`
+- [x] **S06: Doctor + cleanup + code simplification** `risk:low` `depends:[S01,S02,S03,S05]`
   > After this: `/gsd doctor` detects orphaned auto-worktrees, stale milestone branches, corrupt merge state (MERGE_HEAD/SQUASH_MSG), and tracked runtime files — and fixes them. Dead `.gsd/` conflict resolution code removed from worktree-mode paths in git-service.ts. Verified via doctor test cases.
 
 - [ ] **S07: Test suite for worktree-isolated flow** `risk:low` `depends:[S01,S02,S03,S04,S05,S06]`

@@ -127,13 +127,13 @@ This file is the explicit capability and coverage contract for the project.
 
 ### R040 — Doctor git health checks
 - Class: operability
-- Status: active
+- Status: validated
 - Description: `/gsd doctor` detects and optionally fixes git-related issues: orphaned auto-worktrees, stale milestone branches, corrupt merge state (MERGE_HEAD/SQUASH_MSG), tracked runtime files, missing gitignore patterns.
 - Why it matters: When things do go wrong, users need a one-command fix. Doctor is the safety net.
 - Source: inferred
 - Primary owning slice: M003/S06
 - Supporting slices: M003/S05
-- Validation: unmapped
+- Validation: 4 DoctorIssueCode values with detection and fix logic in checkGitHealth. 6 integration tests (17 assertions) in doctor-git.test.ts covering detect/fix/verify cycle for all codes plus safety guards.
 - Notes: Doctor already handles planning artifact issues. This extends it to git health.
 
 ### R041 — Test coverage for worktree-isolated flow
@@ -537,7 +537,7 @@ This file is the explicit capability and coverage contract for the project.
 | R037 | primary-user-loop | active | M003/S05 | all M003 | unmapped |
 | R038 | continuity | active | M003/S04 | none | unmapped |
 | R039 | integration | active | M003/S01 | none | unmapped |
-| R040 | operability | active | M003/S06 | M003/S05 | unmapped |
+| R040 | operability | validated | M003/S06 | M003/S05 | 4 DoctorIssueCode values, 6 integration tests (17 assertions) in doctor-git.test.ts |
 | R041 | quality-attribute | active | M003/S07 | all M003 | unmapped |
 | R042 | core-capability | deferred | none | none | unmapped |
 | R043 | quality-attribute | deferred | none | none | unmapped |
@@ -545,9 +545,9 @@ This file is the explicit capability and coverage contract for the project.
 
 ## Coverage Summary
 
-- Active requirements: 11
-- Mapped to slices: 11
-- Validated: 24
+- Active requirements: 10
+- Mapped to slices: 10
+- Validated: 25
 - Deferred: 5
 - Out of scope: 4
 - Unmapped active requirements: 0
