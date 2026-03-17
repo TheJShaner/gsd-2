@@ -321,6 +321,76 @@ test("verifyExpectedArtifact detects roadmap [x] change despite parse cache", ()
   }
 });
 
+// ─── verifyExpectedArtifact: plan-slice empty scaffold regression (#699) ──
+
+test("verifyExpectedArtifact rejects plan-slice with empty scaffold", () => {
+  const base = makeTmpBase();
+  try {
+    const sliceDir = join(base, ".gsd", "milestones", "M001", "slices", "S01");
+    mkdirSync(sliceDir, { recursive: true });
+    writeFileSync(join(sliceDir, "S01-PLAN.md"), "# S01: Test Slice\n\n## Tasks\n\n");
+    assert.strictEqual(
+      verifyExpectedArtifact("plan-slice", "M001/S01", base),
+      false,
+      "Empty scaffold should not be treated as completed artifact",
+    );
+  } finally {
+    cleanup(base);
+  }
+});
+
+test("verifyExpectedArtifact accepts plan-slice with actual tasks", () => {
+  const base = makeTmpBase();
+  try {
+    const sliceDir = join(base, ".gsd", "milestones", "M001", "slices", "S01");
+    const tasksDir = join(sliceDir, "tasks");
+    mkdirSync(tasksDir, { recursive: true });
+    writeFileSync(join(sliceDir, "S01-PLAN.md"), [
+      "# S01: Test Slice",
+      "",
+      "## Tasks",
+      "",
+      "- [ ] **T01: Implement feature** `est:2h`",
+      "- [ ] **T02: Write tests** `est:1h`",
+    ].join("\n"));
+    writeFileSync(join(tasksDir, "T01-PLAN.md"), "# T01 Plan");
+    writeFileSync(join(tasksDir, "T02-PLAN.md"), "# T02 Plan");
+    assert.strictEqual(
+      verifyExpectedArtifact("plan-slice", "M001/S01", base),
+      true,
+      "Plan with task entries should be treated as completed artifact",
+    );
+  } finally {
+    cleanup(base);
+  }
+});
+
+test("verifyExpectedArtifact accepts plan-slice with completed tasks", () => {
+  const base = makeTmpBase();
+  try {
+    const sliceDir = join(base, ".gsd", "milestones", "M001", "slices", "S01");
+    const tasksDir = join(sliceDir, "tasks");
+    mkdirSync(tasksDir, { recursive: true });
+    writeFileSync(join(sliceDir, "S01-PLAN.md"), [
+      "# S01: Test Slice",
+      "",
+      "## Tasks",
+      "",
+      "- [x] **T01: Implement feature** `est:2h`",
+      "- [ ] **T02: Write tests** `est:1h`",
+    ].join("\n"));
+    writeFileSync(join(tasksDir, "T01-PLAN.md"), "# T01 Plan");
+    writeFileSync(join(tasksDir, "T02-PLAN.md"), "# T02 Plan");
+    assert.strictEqual(
+      verifyExpectedArtifact("plan-slice", "M001/S01", base),
+      true,
+      "Plan with completed task entries should be treated as completed artifact",
+    );
+  } finally {
+    cleanup(base);
+  }
+});
+
 // ─── verifyExpectedArtifact: plan-slice task plan check (#739) ────────────
 
 test("verifyExpectedArtifact plan-slice passes when all task plan files exist", () => {
@@ -342,19 +412,6 @@ test("verifyExpectedArtifact plan-slice passes when all task plan files exist", 
 
     const result = verifyExpectedArtifact("plan-slice", "M001/S01", base);
     assert.equal(result, true, "should pass when all task plan files exist");
-// ─── verifyExpectedArtifact: plan-slice empty scaffold regression (#699) ──
-
-test("verifyExpectedArtifact rejects plan-slice with empty scaffold", () => {
-  const base = makeTmpBase();
-  try {
-    const sliceDir = join(base, ".gsd", "milestones", "M001", "slices", "S01");
-    mkdirSync(sliceDir, { recursive: true });
-    writeFileSync(join(sliceDir, "S01-PLAN.md"), "# S01: Test Slice\n\n## Tasks\n\n");
-    assert.strictEqual(
-      verifyExpectedArtifact("plan-slice", "M001/S01", base),
-      false,
-      "Empty scaffold should not be treated as completed artifact",
-    );
   } finally {
     cleanup(base);
   }
@@ -366,12 +423,6 @@ test("verifyExpectedArtifact plan-slice fails when a task plan file is missing (
     const tasksDir = join(base, ".gsd", "milestones", "M001", "slices", "S01", "tasks");
     const planPath = join(base, ".gsd", "milestones", "M001", "slices", "S01", "S01-PLAN.md");
     const planContent = [
-test("verifyExpectedArtifact accepts plan-slice with actual tasks", () => {
-  const base = makeTmpBase();
-  try {
-    const sliceDir = join(base, ".gsd", "milestones", "M001", "slices", "S01");
-    mkdirSync(sliceDir, { recursive: true });
-    writeFileSync(join(sliceDir, "S01-PLAN.md"), [
       "# S01: Test Slice",
       "",
       "## Tasks",
@@ -385,20 +436,12 @@ test("verifyExpectedArtifact accepts plan-slice with actual tasks", () => {
 
     const result = verifyExpectedArtifact("plan-slice", "M001/S01", base);
     assert.equal(result, false, "should fail when T02-PLAN.md is missing");
-      "- [ ] **T01: Implement feature** `est:2h`",
-      "- [ ] **T02: Write tests** `est:1h`",
-    ].join("\n"));
-    assert.strictEqual(
-      verifyExpectedArtifact("plan-slice", "M001/S01", base),
-      true,
-      "Plan with task entries should be treated as completed artifact",
-    );
   } finally {
     cleanup(base);
   }
 });
 
-test("verifyExpectedArtifact plan-slice passes for plan with no tasks", () => {
+test("verifyExpectedArtifact plan-slice fails for plan with no tasks (#699)", () => {
   const base = makeTmpBase();
   try {
     const planPath = join(base, ".gsd", "milestones", "M001", "slices", "S01", "S01-PLAN.md");
@@ -412,25 +455,7 @@ test("verifyExpectedArtifact plan-slice passes for plan with no tasks", () => {
     writeFileSync(planPath, planContent);
 
     const result = verifyExpectedArtifact("plan-slice", "M001/S01", base);
-    assert.equal(result, true, "should pass when plan has no tasks");
-test("verifyExpectedArtifact accepts plan-slice with completed tasks", () => {
-  const base = makeTmpBase();
-  try {
-    const sliceDir = join(base, ".gsd", "milestones", "M001", "slices", "S01");
-    mkdirSync(sliceDir, { recursive: true });
-    writeFileSync(join(sliceDir, "S01-PLAN.md"), [
-      "# S01: Test Slice",
-      "",
-      "## Tasks",
-      "",
-      "- [x] **T01: Implement feature** `est:2h`",
-      "- [ ] **T02: Write tests** `est:1h`",
-    ].join("\n"));
-    assert.strictEqual(
-      verifyExpectedArtifact("plan-slice", "M001/S01", base),
-      true,
-      "Plan with completed task entries should be treated as completed artifact",
-    );
+    assert.equal(result, false, "should fail when plan has no task entries (empty scaffold, #699)");
   } finally {
     cleanup(base);
   }
