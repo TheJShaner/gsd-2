@@ -619,28 +619,29 @@ export function migrateHierarchyToDb(basePath: string): {
         counts.tasks++;
       }
 
-      // Pre-migration consistency: if all tasks are done but the roadmap
-      // checkbox for this slice is unchecked, trust the task-level state
-      // and mark the slice as complete. This handles the common
+      // Pre-migration consistency: if all tasks are done and the slice
+      // summary exists but the roadmap checkbox is unchecked, upgrade the
+      // slice to complete. This handles the common
       // "all_tasks_done_roadmap_not_checked" inconsistency that the old
-      // doctor would have auto-fixed.
+      // doctor would have auto-fixed. Without a slice summary, the slice
+      // is in the "summarizing" phase, not complete.
       if (!sliceEntry.done) {
+        const sliceSummaryPath = resolveSliceFile(basePath, milestoneId, sliceEntry.id, 'SUMMARY');
+        const hasSliceSummary = sliceSummaryPath !== null && existsSync(sliceSummaryPath);
         const allTasksDone = plan.tasks.length > 0 && plan.tasks.every(t => {
-          // Check actual imported status (may have been downgraded above)
           const tDir = resolveTasksDir(basePath, milestoneId, sliceEntry.id);
           if (!tDir) return t.done;
           const summaryFile = join(tDir, `${t.id}-SUMMARY.md`);
           return t.done && existsSync(summaryFile);
         });
-        if (allTasksDone) {
-          // Update the slice status in-place via DB
+        if (allTasksDone && hasSliceSummary) {
           const adapter = _getAdapter();
           if (adapter) {
             adapter.prepare(
               `UPDATE slices SET status = 'complete' WHERE id = :sid AND milestone_id = :mid`,
             ).run({ ':sid': sliceEntry.id, ':mid': milestoneId });
             process.stderr.write(
-              `gsd-migrate: ${milestoneId}/${sliceEntry.id} all tasks complete — upgrading slice to complete\n`,
+              `gsd-migrate: ${milestoneId}/${sliceEntry.id} all tasks + slice summary complete — upgrading slice to complete\n`,
             );
           }
         }

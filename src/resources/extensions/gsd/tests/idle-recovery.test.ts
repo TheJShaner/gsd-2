@@ -246,7 +246,7 @@ const ROADMAP_COMPLETE = `# M001: Test Milestone
     mkdirSync(join(base, ".gsd", "milestones", "M002", "slices", "S03", "tasks"), { recursive: true });
     const result = buildLoopRemediationSteps("execute-task", "M002/S03/T01", base);
     assertTrue(result !== null, "should return remediation steps");
-    assertTrue(result!.includes("T01-SUMMARY.md"), "steps mention the summary file");
+    assertTrue(result!.includes("gsd undo-task"), "steps include undo-task command");
     assertTrue(result!.includes("T01"), "steps mention the task ID");
     assertTrue(result!.includes("gsd undo-task"), "steps include gsd undo-task command");
   } finally {
@@ -262,7 +262,7 @@ const ROADMAP_COMPLETE = `# M001: Test Milestone
     const result = buildLoopRemediationSteps("plan-slice", "M001/S01", base);
     assertTrue(result !== null, "should return remediation steps for plan-slice");
     assertTrue(result!.includes("S01-PLAN.md"), "steps mention the slice plan file");
-    assertTrue(result!.includes("gsd doctor"), "steps include gsd doctor command");
+    assertTrue(result!.includes("gsd recover"), "steps include gsd recover command");
   } finally {
     rmSync(base, { recursive: true, force: true });
   }
@@ -276,7 +276,7 @@ const ROADMAP_COMPLETE = `# M001: Test Milestone
     const result = buildLoopRemediationSteps("research-slice", "M001/S01", base);
     assertTrue(result !== null, "should return remediation steps for research-slice");
     assertTrue(result!.includes("S01-RESEARCH.md"), "steps mention the slice research file");
-    assertTrue(result!.includes("gsd doctor"), "steps include gsd doctor command");
+    assertTrue(result!.includes("gsd recover"), "steps include gsd recover command");
   } finally {
     rmSync(base, { recursive: true, force: true });
   }

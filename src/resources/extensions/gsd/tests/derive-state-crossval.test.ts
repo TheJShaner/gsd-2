@@ -231,7 +231,9 @@ skills_used: []
       writeFile(base, 'milestones/M001/slices/S01/tasks/.gitkeep', '');
       writeFile(base, 'milestones/M001/slices/S01/tasks/T01-PLAN.md', '# T01 Plan');
       writeFile(base, 'milestones/M001/slices/S01/tasks/T02-PLAN.md', '# T02 Plan');
-      // No S01-SUMMARY.md — should be summarizing
+      writeFile(base, 'milestones/M001/slices/S01/tasks/T01-SUMMARY.md', '---\nid: T01\nparent: S01\nmilestone: M001\n---\n# T01 Summary\nDone.');
+      writeFile(base, 'milestones/M001/slices/S01/tasks/T02-SUMMARY.md', '---\nid: T02\nparent: S01\nmilestone: M001\n---\n# T02 Summary\nDone.');
+      // Tasks have summaries, but no S01-SUMMARY.md — should be summarizing
 
       invalidateStateCache();
       const fileState = await _deriveStateImpl(base);
