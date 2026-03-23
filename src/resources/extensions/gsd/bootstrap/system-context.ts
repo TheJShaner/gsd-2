@@ -98,9 +98,17 @@ export async function buildBeforeAgentStartResult(
   const codebasePath = resolveGsdRootFile(process.cwd(), "CODEBASE");
   if (existsSync(codebasePath)) {
     try {
-      const content = readFileSync(codebasePath, "utf-8").trim();
-      if (content) {
-        codebaseBlock = `\n\n[PROJECT CODEBASE — File structure and descriptions]\n\n${content}`;
+      const rawContent = readFileSync(codebasePath, "utf-8").trim();
+      if (rawContent) {
+        // Cap injection size to ~2 000 tokens to avoid bloating every request.
+        // Full map is always available at .gsd/CODEBASE.md.
+        const MAX_CODEBASE_CHARS = 8_000;
+        const generatedMatch = rawContent.match(/Generated: (\S+)/);
+        const generatedAt = generatedMatch?.[1] ?? "unknown";
+        const content = rawContent.length > MAX_CODEBASE_CHARS
+          ? rawContent.slice(0, MAX_CODEBASE_CHARS) + "\n\n*(truncated — see .gsd/CODEBASE.md for full map)*"
+          : rawContent;
+        codebaseBlock = `\n\n[PROJECT CODEBASE — File structure and descriptions (generated ${generatedAt}, may be stale — run /gsd codebase update to refresh)]\n\n${content}`;
       }
     } catch {
       // skip

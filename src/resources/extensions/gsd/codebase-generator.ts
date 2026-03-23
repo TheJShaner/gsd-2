@@ -56,19 +56,37 @@ const DEFAULT_COLLAPSE_THRESHOLD = 20;
 
 /**
  * Parse an existing CODEBASE.md to extract file → description mappings.
+ * Also scans <!-- gsd:collapsed-descriptions --> comment blocks to preserve
+ * descriptions for files in collapsed directories across incremental updates.
  */
 export function parseCodebaseMap(content: string): Map<string, string> {
   const descriptions = new Map<string, string>();
+  let inCollapsedBlock = false;
+
   for (const line of content.split("\n")) {
+    // Track collapsed-description comment blocks
+    if (line.trimStart().startsWith("<!-- gsd:collapsed-descriptions")) {
+      inCollapsedBlock = true;
+      continue;
+    }
+    if (inCollapsedBlock && line.trimStart().startsWith("-->")) {
+      inCollapsedBlock = false;
+      continue;
+    }
+
     // Match: - `path/to/file.ts` — Description here
     const match = line.match(/^- `(.+?)` — (.+)$/);
     if (match) {
       descriptions.set(match[1], match[2]);
+      continue;
     }
-    // Match: - `path/to/file.ts` (no description)
-    const bareMatch = line.match(/^- `(.+?)`\s*$/);
-    if (bareMatch) {
-      descriptions.set(bareMatch[1], "");
+
+    // Match: - `path/to/file.ts` (no description) — only outside collapsed blocks
+    if (!inCollapsedBlock) {
+      const bareMatch = line.match(/^- `(.+?)`\s*$/);
+      if (bareMatch) {
+        descriptions.set(bareMatch[1], "");
+      }
     }
   }
   return descriptions;
@@ -94,7 +112,6 @@ function shouldExclude(filePath: string, excludes: string[]): boolean {
 
 function lsFiles(basePath: string): string[] {
   try {
-    // Use git ls-files directly — nativeLsFiles("") doesn't work in all contexts
     const result = execSync("git ls-files", { cwd: basePath, encoding: "utf-8", timeout: 10000 });
     return result.split("\n").filter(Boolean);
   } catch {
@@ -102,21 +119,15 @@ function lsFiles(basePath: string): string[] {
   }
 }
 
-function enumerateFiles(basePath: string, excludes: string[], maxFiles: number): string[] {
-  let files: string[];
-  try {
-    files = lsFiles(basePath);
-  } catch {
-    return [];
-  }
-
-  const filtered = files.filter((f) => !shouldExclude(f, excludes));
-
-  if (filtered.length > maxFiles) {
-    return filtered.slice(0, maxFiles);
-  }
-
-  return filtered;
+/**
+ * Enumerate tracked files, applying exclusions and the maxFiles cap.
+ * Returns both the file list and whether truncation occurred.
+ */
+function enumerateFiles(basePath: string, excludes: string[], maxFiles: number): { files: string[]; truncated: boolean } {
+  const allFiles = lsFiles(basePath);
+  const filtered = allFiles.filter((f) => !shouldExclude(f, excludes));
+  const truncated = filtered.length > maxFiles;
+  return { files: truncated ? filtered.slice(0, maxFiles) : filtered, truncated };
 }
 
 // ─── Grouping ────────────────────────────────────────────────────────────────
@@ -144,13 +155,13 @@ function groupByDirectory(
   const sortedDirs = [...dirMap.keys()].sort();
 
   for (const dir of sortedDirs) {
-    const files = dirMap.get(dir)!;
-    files.sort((a, b) => a.path.localeCompare(b.path));
+    const dirFiles = dirMap.get(dir)!;
+    dirFiles.sort((a, b) => a.path.localeCompare(b.path));
 
     groups.push({
       path: dir,
-      files,
-      collapsed: files.length > collapseThreshold,
+      files: dirFiles,
+      collapsed: dirFiles.length > collapseThreshold,
     });
   }
 
@@ -161,7 +172,7 @@ function groupByDirectory(
 
 function renderCodebaseMap(groups: DirectoryGroup[], totalFiles: number, truncated: boolean): string {
   const lines: string[] = [];
-  const now = new Date().toISOString().slice(0, 19) + "Z";
+  const now = new Date().toISOString().split(".")[0] + "Z";
   const described = groups.reduce((sum, g) => sum + g.files.filter((f) => f.description).length, 0);
 
   lines.push("# Codebase Map");
@@ -174,7 +185,6 @@ function renderCodebaseMap(groups: DirectoryGroup[], totalFiles: number, truncat
 
   for (const group of groups) {
     const heading = group.path || "(root)";
-    // Use ### for directories to keep hierarchy flat and scannable
     lines.push(`### ${heading}/`);
 
     if (group.collapsed) {
@@ -189,6 +199,17 @@ function renderCodebaseMap(groups: DirectoryGroup[], totalFiles: number, truncat
         .map(([ext, count]) => `${count} ${ext}`)
         .join(", ");
       lines.push(`- *(${group.files.length} files: ${extSummary})*`);
+
+      // Preserve any existing descriptions in a hidden comment block so
+      // incremental updates can recover them via parseCodebaseMap.
+      const descLines = group.files
+        .filter((f) => f.description)
+        .map((f) => `- \`${f.path}\` — ${f.description}`);
+      if (descLines.length > 0) {
+        lines.push("<!-- gsd:collapsed-descriptions");
+        lines.push(...descLines);
+        lines.push("-->");
+      }
     } else {
       for (const file of group.files) {
         if (file.description) {
@@ -214,18 +235,17 @@ export function generateCodebaseMap(
   basePath: string,
   options?: CodebaseMapOptions,
   existingDescriptions?: Map<string, string>,
-): { content: string; fileCount: number; truncated: boolean } {
+): { content: string; fileCount: number; truncated: boolean; files: string[] } {
   const excludes = [...DEFAULT_EXCLUDES, ...(options?.excludePatterns ?? [])];
   const maxFiles = options?.maxFiles ?? DEFAULT_MAX_FILES;
   const collapseThreshold = options?.collapseThreshold ?? DEFAULT_COLLAPSE_THRESHOLD;
 
-  const files = enumerateFiles(basePath, excludes, maxFiles);
-  const truncated = files.length >= maxFiles;
+  const { files, truncated } = enumerateFiles(basePath, excludes, maxFiles);
   const descriptions = existingDescriptions ?? new Map<string, string>();
   const groups = groupByDirectory(files, descriptions, collapseThreshold);
   const content = renderCodebaseMap(groups, files.length, truncated);
 
-  return { content, fileCount: files.length, truncated };
+  return { content, fileCount: files.length, truncated, files };
 }
 
 /**
@@ -235,7 +255,7 @@ export function generateCodebaseMap(
 export function updateCodebaseMap(
   basePath: string,
   options?: CodebaseMapOptions,
-): { content: string; added: number; removed: number; unchanged: number; fileCount: number } {
+): { content: string; added: number; removed: number; unchanged: number; fileCount: number; truncated: boolean } {
   const codebasePath = join(gsdRoot(basePath), "CODEBASE.md");
 
   // Load existing descriptions
@@ -247,31 +267,29 @@ export function updateCodebaseMap(
 
   const existingFiles = new Set(existingDescriptions.keys());
 
-  // Generate new map preserving descriptions
+  // Generate new map preserving descriptions — reuse the returned file list
+  // to avoid a second enumeration (prevents race between content and stats).
   const result = generateCodebaseMap(basePath, options, existingDescriptions);
+  const currentSet = new Set(result.files);
 
   // Count changes
-  const newFiles = new Set<string>();
-  const excludes = [...DEFAULT_EXCLUDES, ...(options?.excludePatterns ?? [])];
-  const maxFiles = options?.maxFiles ?? DEFAULT_MAX_FILES;
-  const currentFiles = enumerateFiles(basePath, excludes, maxFiles);
-
-  for (const f of currentFiles) {
-    if (!existingFiles.has(f)) newFiles.add(f);
-  }
-
-  const currentSet = new Set(currentFiles);
+  let added = 0;
   let removed = 0;
+
+  for (const f of result.files) {
+    if (!existingFiles.has(f)) added++;
+  }
   for (const f of existingFiles) {
     if (!currentSet.has(f)) removed++;
   }
 
   return {
     content: result.content,
-    added: newFiles.size,
+    added,
     removed,
-    unchanged: currentFiles.length - newFiles.size,
+    unchanged: result.files.length - added,
     fileCount: result.fileCount,
+    truncated: result.truncated,
   };
 }
 
@@ -314,15 +332,20 @@ export function getCodebaseMapStats(basePath: string): {
     return { exists: false, fileCount: 0, describedCount: 0, undescribedCount: 0, generatedAt: null };
   }
 
+  // Parse total file count from the header line (accurate even for collapsed dirs)
+  const fileCountMatch = content.match(/Files:\s*(\d+)/);
+  const totalFiles = fileCountMatch ? parseInt(fileCountMatch[1], 10) : 0;
+
+  // Use parseCodebaseMap to count described files (includes collapsed-description blocks)
   const descriptions = parseCodebaseMap(content);
   const described = [...descriptions.values()].filter((d) => d.length > 0).length;
   const dateMatch = content.match(/Generated: (\S+)/);
 
   return {
     exists: true,
-    fileCount: descriptions.size,
+    fileCount: totalFiles,
     describedCount: described,
-    undescribedCount: descriptions.size - described,
+    undescribedCount: totalFiles - described,
     generatedAt: dateMatch?.[1] ?? null,
   };
 }

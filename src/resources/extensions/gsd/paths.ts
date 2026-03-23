@@ -277,7 +277,7 @@ const LEGACY_GSD_ROOT_FILES: Record<GSDRootFileKey, string> = {
   REQUIREMENTS: "requirements.md",
   OVERRIDES: "overrides.md",
   KNOWLEDGE: "knowledge.md",
-  CODEBASE: "CODEBASE.md",
+  CODEBASE: "codebase.md",
 };
 
 // ─── GSD Root Discovery ───────────────────────────────────────────────────────
