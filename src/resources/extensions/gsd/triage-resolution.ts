@@ -485,7 +485,7 @@ export function executeTriageResolutions(
   // picks up the work naturally from its planning context.
   const deferrable = loadAllCaptures(basePath).filter(
     c => c.status === "resolved" && !c.executed &&
-      (c.classification === "defer" || c.classification === "milestone"),
+      (c.classification === "defer" || (c.classification as string) === "milestone"),
   );
   if (deferrable.length > 0) {
     // Group captures that reference a specific milestone — create dirs as needed.
