@@ -48,13 +48,13 @@ export interface PlanMilestoneParams {
   keyRisks?: Array<{ risk: string; whyItMatters: string }>;
   /** @optional — defaults to [] when omitted */
   proofStrategy?: Array<{ riskOrUnknown: string; retireIn: string; whatWillBeProven: string }>;
-  /** @optional — defaults to "Not provided." when omitted */
+  /** @optional — defaults to "" when omitted */
   verificationContract?: string;
-  /** @optional — defaults to "Not provided." when omitted */
+  /** @optional — defaults to "" when omitted */
   verificationIntegration?: string;
-  /** @optional — defaults to "Not provided." when omitted */
+  /** @optional — defaults to "" when omitted */
   verificationOperational?: string;
-  /** @optional — defaults to "Not provided." when omitted */
+  /** @optional — defaults to "" when omitted */
   verificationUat?: string;
   /** @optional — defaults to [] when omitted */
   definitionOfDone?: string[];
