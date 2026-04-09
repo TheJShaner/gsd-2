@@ -2,6 +2,8 @@
  * Workflow MCP tools — exposes the core GSD mutation/read handlers over MCP.
  */
 
+import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import { z } from "zod";
 
 const SUMMARY_ARTIFACT_TYPES = ["SUMMARY", "RESEARCH", "CONTEXT", "ASSESSMENT", "CONTEXT-DRAFT"] as const;
@@ -217,12 +219,46 @@ type WorkflowToolExecutors = {
 
 let workflowToolExecutorsPromise: Promise<WorkflowToolExecutors> | null = null;
 
+function toFileUrl(modulePath: string): string {
+  return pathToFileURL(resolve(modulePath)).href;
+}
+
+function getWorkflowExecutorModuleCandidates(env: NodeJS.ProcessEnv = process.env): string[] {
+  const candidates: string[] = [];
+  const explicitModule = env.GSD_WORKFLOW_EXECUTORS_MODULE?.trim();
+  if (explicitModule) {
+    candidates.push(
+      explicitModule.startsWith("file:") || explicitModule.startsWith("data:") ? explicitModule : toFileUrl(explicitModule),
+    );
+  }
+
+  candidates.push(
+    new URL("../../../src/resources/extensions/gsd/tools/workflow-tool-executors.js", import.meta.url).href,
+    new URL("../../../src/resources/extensions/gsd/tools/workflow-tool-executors.ts", import.meta.url).href,
+  );
+
+  return [...new Set(candidates)];
+}
+
 async function getWorkflowToolExecutors(): Promise<WorkflowToolExecutors> {
   if (!workflowToolExecutorsPromise) {
-    const jsUrl = new URL("../../../src/resources/extensions/gsd/tools/workflow-tool-executors.js", import.meta.url).href;
-    const tsUrl = new URL("../../../src/resources/extensions/gsd/tools/workflow-tool-executors.ts", import.meta.url).href;
-    workflowToolExecutorsPromise = import(jsUrl)
-      .catch(() => import(tsUrl)) as Promise<WorkflowToolExecutors>;
+    workflowToolExecutorsPromise = (async () => {
+      const attempts: string[] = [];
+      for (const candidate of getWorkflowExecutorModuleCandidates()) {
+        try {
+          return await import(candidate) as WorkflowToolExecutors;
+        } catch (err) {
+          attempts.push(`${candidate} (${err instanceof Error ? err.message : String(err)})`);
+        }
+      }
+
+      throw new Error(
+        "Unable to load GSD workflow executor bridge for MCP mutation tools. " +
+        "Set GSD_WORKFLOW_EXECUTORS_MODULE to an importable workflow-tool-executors module, " +
+        "or run the MCP server from a GSD checkout that includes src/resources/extensions/gsd/tools/workflow-tool-executors.(js|ts). " +
+        `Attempts: ${attempts.join("; ")}`,
+      );
+    })();
   }
   return workflowToolExecutorsPromise;
 }
