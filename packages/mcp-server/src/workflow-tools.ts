@@ -337,24 +337,29 @@ function toFileUrl(modulePath: string): string {
   return pathToFileURL(resolve(modulePath)).href;
 }
 
-async function importLocalModule<T>(relativePath: string): Promise<T> {
+/** @internal — exported for testing only */
+export function _buildImportCandidates(relativePath: string): string[] {
   // Build candidate paths: try the given path first, then swap src/<->dist/
   // and try .ts extension. This handles both dev (tsx from src/) and prod
   // (compiled from dist/) execution contexts.
-  const candidates: string[] = [
-    new URL(relativePath, import.meta.url).href,
-  ];
+  const candidates: string[] = [relativePath];
   const swapped = relativePath.includes("/src/")
     ? relativePath.replace("/src/", "/dist/")
     : relativePath.includes("/dist/")
       ? relativePath.replace("/dist/", "/src/")
       : null;
-  if (swapped) candidates.push(new URL(swapped, import.meta.url).href);
+  if (swapped) candidates.push(swapped);
   // Also try .ts variants for dev-mode tsx execution
   if (relativePath.endsWith(".js")) {
-    candidates.push(new URL(relativePath.replace(/\.js$/, ".ts"), import.meta.url).href);
-    if (swapped) candidates.push(new URL(swapped.replace(/\.js$/, ".ts"), import.meta.url).href);
+    candidates.push(relativePath.replace(/\.js$/, ".ts"));
+    if (swapped) candidates.push(swapped.replace(/\.js$/, ".ts"));
   }
+  return candidates;
+}
+
+async function importLocalModule<T>(relativePath: string): Promise<T> {
+  const candidates = _buildImportCandidates(relativePath)
+    .map((p) => new URL(p, import.meta.url).href);
 
   let lastErr: unknown;
   for (const candidate of candidates) {
