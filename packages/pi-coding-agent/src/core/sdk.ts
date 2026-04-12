@@ -363,8 +363,12 @@ export async function createAgentSession(options: CreateAgentSessionOptions = {}
 
 			// Retry key resolution with backoff to handle transient network failures
 			// (e.g., OAuth token refresh failing due to brief connectivity loss).
+			// When credentials are in a cooldown window (e.g., after a 429), wait
+			// for the backoff to expire instead of using fixed delays that are
+			// shorter than the cooldown duration.
 			const maxAttempts = 3;
 			const baseDelayMs = 2000;
+			const maxCooldownWaitMs = 60_000; // Don't wait longer than 60s (skip quota-exhausted 30min backoffs)
 			for (let attempt = 1; attempt <= maxAttempts; attempt++) {
 				const key = await modelRegistry.getApiKeyForProvider(resolvedProvider);
 				if (key) return key;
@@ -379,7 +383,21 @@ export async function createAgentSession(options: CreateAgentSessionOptions = {}
 				const isOAuth = model && modelRegistry.isUsingOAuth(model);
 				if (!hasAuth && !isOAuth) break;
 
-				// Wait with exponential backoff before retrying
+				// If credentials are in a cooldown window, wait for the earliest
+				// one to expire rather than using a fixed delay that's too short.
+				const backoffExpiry = modelRegistry.authStorage.getEarliestBackoffExpiry(resolvedProvider);
+				if (backoffExpiry !== undefined) {
+					const waitMs = backoffExpiry - Date.now() + 500; // 500ms buffer
+					if (waitMs > 0 && waitMs <= maxCooldownWaitMs) {
+						await new Promise(resolve => setTimeout(resolve, waitMs));
+						continue; // Retry immediately after cooldown clears
+					}
+					if (waitMs > maxCooldownWaitMs) {
+						break; // Quota-exhausted or very long backoff — don't block
+					}
+				}
+
+				// Standard exponential backoff for non-cooldown transient failures
 				await new Promise(resolve => setTimeout(resolve, baseDelayMs * attempt));
 			}
 

@@ -27,7 +27,7 @@ import {
   runFinalize,
 } from "./phases.js";
 import { debugLog } from "../debug-logger.js";
-import { isInfrastructureError } from "./infra-errors.js";
+import { isInfrastructureError, isTransientCooldownError, COOLDOWN_FALLBACK_WAIT_MS } from "./infra-errors.js";
 import { resolveEngine } from "../engine-resolver.js";
 
 /**
@@ -298,6 +298,26 @@ export async function autoLoop(
           `Infrastructure error (${infraCode}): not recoverable by retry`,
         );
         break;
+      }
+
+      // ── Credential cooldown: wait and retry without burning error budget ──
+      // A 429 triggers a 30s credential backoff in AuthStorage. If the SDK's
+      // getApiKey() retries couldn't outlast the window, the error surfaces
+      // here. Wait for the cooldown to clear rather than counting it as a
+      // consecutive failure — 3 fast cooldown errors would otherwise kill
+      // the auto session unnecessarily.
+      if (isTransientCooldownError(loopErr)) {
+        debugLog("autoLoop", {
+          phase: "cooldown-wait",
+          iteration,
+          error: msg,
+        });
+        ctx.ui.notify(
+          `Credentials in cooldown — waiting for rate limit to clear before retrying.`,
+          "warning",
+        );
+        await new Promise(resolve => setTimeout(resolve, COOLDOWN_FALLBACK_WAIT_MS));
+        continue; // Retry iteration without incrementing consecutiveErrors
       }
 
       consecutiveErrors++;
