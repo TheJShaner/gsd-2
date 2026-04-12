@@ -342,7 +342,7 @@ const modelsJsonPath = resolveModelsJsonPath()
 
 const modelRegistry = new ModelRegistry(authStorage, modelsJsonPath)
 markStartup('ModelRegistry')
-const settingsManager = SettingsManager.create(agentDir)
+const settingsManager = SettingsManager.create(process.cwd(), agentDir)
 applySecurityOverrides(settingsManager)
 markStartup('SettingsManager.create')
 
