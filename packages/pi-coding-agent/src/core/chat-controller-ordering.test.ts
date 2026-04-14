@@ -758,6 +758,9 @@ test("chat-controller freezes prior sub-turn and appends new segments when conte
 	assert.equal(host.chatContainer.children.length, 5, "new tool appends after new text-run");
 	assert.equal(host.chatContainer.children[4]?.constructor?.name, "ToolExecutionComponent");
 	assert.notEqual(host.chatContainer.children[4], priorT1, "new T2 must be a different component from prior T1");
+
+	// Finalize so the module-level pinned spinner (setInterval) is torn down and the test process can exit.
+	await handleAgentEvent(host, { type: "message_end", message: makeAssistant([{ type: "text", text: "C" }, t2]) } as any);
 });
 
 // Regression: after a sub-turn shrink, lastPinnedText must be cleared so the
@@ -806,4 +809,7 @@ test("chat-controller updates pinned zone after sub-turn shrink", async () => {
 
 	// Pinned markdown must now reflect the new sub-turn's text, not stay frozen on "first".
 	assert.equal((pinnedMarkdown as any)?.text, "second", "pinned zone must update after sub-turn shrink (#4144 regression)");
+
+	// Finalize so the module-level pinned spinner (setInterval) is torn down and the test process can exit.
+	await handleAgentEvent(host, { type: "message_end", message: makeAssistant([{ type: "text", text: "second" }, t2]) } as any);
 });
