@@ -15,7 +15,7 @@ export interface GsdCommandDefinition {
 type CompletionMap = Record<string, readonly GsdCommandDefinition[]>;
 
 export const GSD_COMMAND_DESCRIPTION =
-  "GSD — Get Shit Done: /gsd help|start|templates|next|auto|stop|pause|status|widget|visualize|queue|quick|discuss|capture|triage|dispatch|history|undo|undo-task|reset-slice|rate|skip|export|cleanup|model|mode|prefs|config|keys|hooks|run-hook|skill-health|doctor|logs|forensics|changelog|migrate|remote|steer|knowledge|new-milestone|parallel|cmux|park|unpark|init|setup|inspect|extensions|update|fast|mcp|rethink|codebase|notifications|ship|do|session-report|backlog|pr-branch|add-tests";
+  "GSD — Get Shit Done: /gsd help|start|templates|next|auto|stop|pause|status|widget|visualize|queue|quick|discuss|capture|triage|dispatch|history|undo|undo-task|reset-slice|rate|skip|export|cleanup|model|mode|prefs|config|keys|hooks|run-hook|skill-health|doctor|logs|forensics|changelog|migrate|remote|steer|knowledge|new-milestone|parallel|cmux|park|unpark|init|setup|inspect|extensions|update|fast|mcp|rethink|codebase|notifications|ship|do|session-report|backlog|pr-branch|add-tests|scan";
 
 export const TOP_LEVEL_SUBCOMMANDS: readonly GsdCommandDefinition[] = [
   { cmd: "help", desc: "Categorized command reference with descriptions" },
@@ -80,6 +80,7 @@ export const TOP_LEVEL_SUBCOMMANDS: readonly GsdCommandDefinition[] = [
   { cmd: "backlog", desc: "Manage backlog items (add, promote, remove, list)" },
   { cmd: "pr-branch", desc: "Create clean PR branch filtering .gsd/ commits" },
   { cmd: "add-tests", desc: "Generate tests for completed slices" },
+  { cmd: "scan", desc: "Rapid codebase assessment — lightweight alternative to full map (--focus tech|arch|quality|concerns|tech+arch)" },
 ];
 
 const NESTED_COMPLETIONS: CompletionMap = {
@@ -268,6 +269,13 @@ const NESTED_COMPLETIONS: CompletionMap = {
   "pr-branch": [
     { cmd: "--dry-run", desc: "Preview what would be filtered" },
     { cmd: "--name", desc: "Custom branch name" },
+  ],
+  scan: [
+    { cmd: "--focus tech", desc: "Technology stack and external integrations" },
+    { cmd: "--focus arch", desc: "Architecture patterns and directory structure" },
+    { cmd: "--focus quality", desc: "Coding conventions and testing patterns" },
+    { cmd: "--focus concerns", desc: "Technical debt and risk areas" },
+    { cmd: "--focus tech+arch", desc: "Tech + Architecture (default)" },
   ],
 };
 

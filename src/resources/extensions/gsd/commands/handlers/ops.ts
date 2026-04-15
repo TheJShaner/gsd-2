@@ -241,5 +241,11 @@ Examples:
     await handleExtractLearnings(trimmed.replace(/^extract-learnings\s*/, "").trim(), ctx, pi);
     return true;
   }
+  if (trimmed === "scan" || trimmed.startsWith("scan ")) {
+    const { handleScan } = await import("../../commands-scan.js");
+    // \s* (not \s+) is intentional: handles both /gsd scan (no args) and /gsd scan --focus X
+    await handleScan(trimmed.replace(/^scan\s*/, "").trim(), ctx, pi);
+    return true;
+  }
   return false;
 }
