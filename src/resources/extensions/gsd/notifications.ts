@@ -32,12 +32,12 @@ export function sendDesktopNotification(
     title = formatNotificationTitle(projectName);
   }
   const loaded = loadEffectiveGSDPreferences()?.preferences;
-  if (!shouldSendDesktopNotification(kind, loaded?.notifications)) return;
 
-  // Option A: fire remote notification from here so every call-site in phases.ts
-  // automatically triggers Telegram/Slack/Discord without touching loop-deps or phases.
-  // fire-and-forget — sendRemoteNotification is async, sendDesktopNotification is sync.
+  // Remote notifications fire independently of desktop preferences.
+  // sendRemoteNotification handles "not configured" gracefully (early return).
   void sendRemoteNotification(title, message).catch(() => {});
+
+  if (!shouldSendDesktopNotification(kind, loaded?.notifications)) return;
 
   const cmux = resolveCmuxConfig(loaded);
   if (cmux.notifications) {

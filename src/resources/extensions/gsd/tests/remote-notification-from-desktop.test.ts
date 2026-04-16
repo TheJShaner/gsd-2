@@ -83,3 +83,25 @@ test("sendRemoteNotification is invoked as void fire-and-forget with .catch(() =
     "sendRemoteNotification call must be followed by .catch() to suppress unhandled-rejection warnings",
   );
 });
+
+test("sendRemoteNotification call appears before shouldSendDesktopNotification guard", () => {
+  // Regression guard for the HIGH-severity bug where remote notifications were
+  // gated behind the desktop-notification preference check. Users who disable
+  // desktop notifications must still receive Telegram/Slack/Discord messages.
+  const fnStart = SOURCE.indexOf("export function sendDesktopNotification(");
+  assert.ok(fnStart > -1, "sendDesktopNotification must be present in notifications.ts");
+
+  const nextExportIdx = SOURCE.indexOf("\nexport ", fnStart + 1);
+  const fnBody = nextExportIdx > -1 ? SOURCE.slice(fnStart, nextExportIdx) : SOURCE.slice(fnStart);
+
+  const remoteCallIdx = fnBody.indexOf("sendRemoteNotification(");
+  const guardIdx = fnBody.indexOf("shouldSendDesktopNotification(");
+
+  assert.ok(remoteCallIdx > -1, "sendRemoteNotification must be called inside sendDesktopNotification");
+  assert.ok(guardIdx > -1, "shouldSendDesktopNotification guard must be present inside sendDesktopNotification");
+
+  assert.ok(
+    remoteCallIdx < guardIdx,
+    `sendRemoteNotification (pos ${remoteCallIdx}) must appear BEFORE the shouldSendDesktopNotification guard (pos ${guardIdx}) so that remote channels fire even when desktop notifications are disabled`,
+  );
+});
